@@ -75,35 +75,39 @@ footer{
 </footer>
 
 <script>
-const username = "chavollavic18"; // ← CAMBIA ESTO
+const username = "chavollavic18";
+const repo = "portafolio";
 
-fetch(`https://github.com/chavollavic18/portafolio`)
-.then(response => response.json())
+fetch(`https://api.github.com/repos/${username}/${repo}/contents/`)
+.then(res => res.json())
 .then(data => {
+
     const container = document.getElementById("repos");
+    container.innerHTML = "";
 
-    data.forEach(repo => {
+    data
+    .filter(file => file.name.endsWith(".html") && file.name !== "index.html")
+    .forEach(file => {
 
-        // Opcional: evitar forks
-        if(!repo.fork){
+        const card = document.createElement("div");
+        card.className = "card";
 
-            const card = document.createElement("div");
-            card.classList.add("card");
+        const nombreLimpio = file.name.replace(".html","");
 
-            card.innerHTML = `
-                <h3>${repo.name}</h3>
-                <p>${repo.description ? repo.description : "Sin descripción"}</p>
-                <a href="${repo.html_url}" target="_blank">Ver en GitHub</a>
-            `;
+        card.innerHTML = `
+            <h3>${nombreLimpio}</h3>
+            <a href="https://${username}.github.io/${repo}/${file.name}" target="_blank">
+                Ver Actividad
+            </a>
+        `;
 
-            container.appendChild(card);
-        }
+        container.appendChild(card);
     });
+
 })
-.catch(error => {
-    document.getElementById("repos").innerHTML = "Error cargando repositorios";
+.catch(err => {
+    console.error(err);
 });
 </script>
-
 </body>
 </html>
