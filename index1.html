@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portafolio</title>
+
+<style>
+body{
+    font-family: Arial, sans-serif;
+    margin:0;
+    background:#0f172a;
+    color:white;
+}
+
+header{
+    text-align:center;
+    padding:30px;
+    background:#1e293b;
+}
+
+section{
+    width:90%;
+    max-width:1000px;
+    margin:20px auto;
+}
+
+.card{
+    background:#1e293b;
+    padding:20px;
+    margin:15px 0;
+    border-radius:10px;
+    transition:0.3s;
+    border:1px solid #334155;
+}
+
+.card:hover{
+    transform:scale(1.02);
+    border-color:#3b82f6;
+}
+
+.card a{
+    display:inline-block;
+    margin-top:10px;
+    text-decoration:none;
+    background:#3b82f6;
+    padding:8px 12px;
+    border-radius:6px;
+    color:white;
+}
+
+footer{
+    text-align:center;
+    padding:20px;
+    background:#1e293b;
+    margin-top:40px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>Mi Portafolio</h1>
+    <p>Proyectos cargados automáticamente desde GitHub</p>
+</header>
+
+<section>
+    <h2>Mis Proyectos</h2>
+    <div id="repos"></div>
+</section>
+
+<footer>
+    © 2026
+</footer>
+
+<script>
+const username = "TU_USUARIO_AQUI"; // ← CAMBIA ESTO
+
+fetch(`https://api.github.com/users/${username}/repos`)
+.then(response => response.json())
+.then(data => {
+    const container = document.getElementById("repos");
+
+    data.forEach(repo => {
+
+        // Opcional: evitar forks
+        if(!repo.fork){
+
+            const card = document.createElement("div");
+            card.classList.add("card");
+
+            card.innerHTML = `
+                <h3>${repo.name}</h3>
+                <p>${repo.description ? repo.description : "Sin descripción"}</p>
+                <a href="${repo.html_url}" target="_blank">Ver en GitHub</a>
+            `;
+
+            container.appendChild(card);
+        }
+    });
+})
+.catch(error => {
+    document.getElementById("repos").innerHTML = "Error cargando repositorios";
+});
+</script>
+
+</body>
+</html>
