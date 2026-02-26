@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carga de modelos glTF con GLTFLoader</title>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: Arial, Helvetica, sans-serif; }
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            pointer-events: none;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h2>Modelos GLB Cargados</h2>
+        <p>Dragon attenuation | Flamingo | Soldier</p>
+        <p>Materiales modificados con traverse()</p>
+    </div>
+
+    <!-- Importar Three.js y los loaders -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+        // --- Configuración inicial de la escena ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x111122); // Fondo oscuro para resaltar colores
+
+        // --- Cámara ---
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(5, 3, 8);
+        camera.lookAt(0, 1, 0);
+
+        // --- Renderizador ---
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true; // Habilitar sombras para mejor efecto
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.body.appendChild(renderer.domElement);
+
+        // --- Controles para orbitar ---
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.target.set(0, 1, 0);
+
+        // --- Luces ---
+        // Luz ambiental para iluminación base
+        const ambientLight = new THREE.AmbientLight(0x404060);
+        scene.add(ambientLight);
+
+        // Luz principal con sombras
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+        dirLight.position.set(5, 10, 7);
+        dirLight.castShadow = true;
+        dirLight.receiveShadow = true;
+        dirLight.shadow.mapSize.width = 1024;
+        dirLight.shadow.mapSize.height = 1024;
+        const d = 10;
+        dirLight.shadow.camera.left = -d;
+        dirLight.shadow.camera.right = d;
+        dirLight.shadow.camera.top = d;
+        dirLight.shadow.camera.bottom = -d;
+        dirLight.shadow.camera.near = 1;
+        dirLight.shadow.camera.far = 15;
+        scene.add(dirLight);
+
+        // Luces de relleno
+        const fillLight1 = new THREE.PointLight(0xffaa88, 0.5);
+        fillLight1.position.set(-3, 4, 5);
+        scene.add(fillLight1);
+        
+        const fillLight2 = new THREE.PointLight(0x88aaff, 0.5);
+        fillLight2.position.set(4, 3, -4);
+        scene.add(fillLight2);
+
+        // --- Plano base para recibir sombras y dar contexto ---
+        const planeGeometry = new THREE.CircleGeometry(8, 32);
+        const planeMaterial = new THREE.MeshStandardMaterial({ color: 0x2a2a3a, roughness: 0.6, metalness: 0.1, side: THREE.DoubleSide });
+        const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+        plane.rotation.x = -Math.PI / 2;
+        plane.position.y = -0.01;
+        plane.receiveShadow = true;
+        scene.add(plane);
+
+        // Agregar una rejilla para referencia visual
+        const gridHelper = new THREE.GridHelper(15, 20, 0x88aaff, 0x335588);
+        gridHelper.position.y = 0;
+        scene.add(gridHelper);
+
+        // --- Cargador de modelos GLTF ---
+        const loader = new GLTFLoader();
+        
+        // Objeto para almacenar los modelos cargados (opcional)
+        const models = {};
+
+        // --- Función para procesar materiales con traverse ---
+        function procesarMateriales(modelo, colorEmision, roughnessVal, metalnessVal) {
+            modelo.traverse((child) => {
+                if (child.isMesh) {
+                    // Habilitar sombras para cada malla
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                    
+                    // Acceder a los materiales (puede ser material único o array)
+                    if (Array.isArray(child.material)) {
+                        child.material.forEach(material => {
+                            modificarMaterial(material, colorEmision, roughnessVal, metalnessVal);
+                        });
+                    } else {
+                        modificarMaterial(child.material, colorEmision, roughnessVal, metalnessVal);
+                    }
+                }
+            });
+        }
+
+        function modificarMaterial(material, colorEmision, roughnessVal, metalnessVal) {
+            // Cambiar propiedades del material
+            if (material.isMeshStandardMaterial || material.isMeshPhongMaterial) {
+                // Añadir un pequeño color de emisión para que resalten
+                material.emissive.setHex(colorEmision);
+                material.emissiveIntensity = 0.3;
+                
+                // Modificar rugosidad y metalness según parámetros
+                material.roughness = roughnessVal;
+                material.metalness = metalnessVal;
+                
+                // Aumentar el brillo un poco si es necesario
+                if (material.color) {
+                    // Hacer los colores ligeramente más vibrantes
+                    material.color.multiplyScalar(1.1);
+                }
+            }
+            console.log('Material modificado:', material.name || 'sin nombre');
+        }
+
+        // --- Cargar DragonAttenuation.glb ---
+        loader.load(
+            '/models/DragonAttenuation.glb',
+            (gltf) => {
+                const model = gltf.scene;
+                model.position.set(-3, 0, 0);
+                model.rotation.y = 0.5;
+                model.scale.set(0.8, 0.8, 0.8);
+                
+                // Procesar materiales: color emisión azul, rugosidad media, metalness bajo
+                procesarMateriales(model, 0x3366ff, 0.4, 0.2);
+                
+                scene.add(model);
+                models.dragon = model;
+                console.log('Dragon cargado');
+            },
+            (xhr) => {
+                console.log(`Dragon: ${(xhr.loaded / xhr.total * 100)}% cargado`);
+            },
+            (error) => {
+                console.error('Error cargando Dragon:', error);
+            }
+        );
+
+        // --- Cargar Flamingo.glb ---
+        loader.load(
+            '/models/Flamingo.glb',
+            (gltf) => {
+                const model = gltf.scene;
+                model.position.set(0, 0, 0);
+                model.rotation.y = -0.3;
+                model.scale.set(0.9, 0.9, 0.9);
+                
+                // Procesar materiales: color emisión rosa, rugosidad baja, metalness cero (para aspecto más suave)
+                procesarMateriales(model, 0xff66aa, 0.3, 0.0);
+                
+                scene.add(model);
+                models.flamingo = model;
+                console.log('Flamingo cargado');
+            },
+            (xhr) => {
+                console.log(`Flamingo: ${(xhr.loaded / xhr.total * 100)}% cargado`);
+            },
+            (error) => {
+                console.error('Error cargando Flamingo:', error);
+            }
+        );
+
+        // --- Cargar Soldier.glb ---
+        loader.load(
+            '/models/Soldier.glb',
+            (gltf) => {
+                const model = gltf.scene;
+                model.position.set(3, 0, 1);
+                model.rotation.y = 0.8;
+                model.scale.set(0.7, 0.7, 0.7);
+                
+                // Procesar materiales: color emisión verde, rugosidad alta, metalness medio
+                procesarMateriales(model, 0x44aa44, 0.7, 0.5);
+                
+                scene.add(model);
+                models.soldier = model;
+                console.log('Soldier cargado');
+            },
+            (xhr) => {
+                console.log(`Soldier: ${(xhr.loaded / xhr.total * 100)}% cargado`);
+            },
+            (error) => {
+                console.error('Error cargando Soldier:', error);
+            }
+        );
+
+        // --- Animación ---
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Pequeña rotación automática para apreciar los modelos (opcional)
+            // Puedes descomentar si quieres que giren lentamente
+            // if (models.dragon) models.dragon.rotation.y += 0.002;
+            // if (models.flamingo) models.flamingo.rotation.y += 0.001;
+            // if (models.soldier) models.soldier.rotation.y += 0.001;
+
+            controls.update(); // Actualizar controles Orbit
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // --- Manejar redimensionamiento de ventana ---
+        window.addEventListener('resize', onWindowResize, false);
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+    </script>
+</body>
+</html>

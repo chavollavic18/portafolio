@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Three.Js Cube</title>
+</head>
+<body>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // Variables globales
+        let scene, camera, renderer, cube, animationId, controls;
+
+        // Inicializar la aplicación
+        function init() {
+            createScene();
+            createCamera();
+            createRenderer();
+            createCube();
+            setupEventListeners();
+            animate();
+        }
+
+        function createScene() {
+            scene = new THREE.Scene();
+        }
+
+        function createCamera() {
+            const aspectRatio = window.innerWidth / window.innerHeight;
+            camera = new THREE.PerspectiveCamera(75, aspectRatio, 0.1, 1000);
+            camera.position.z = 5;
+        }
+
+        function createRenderer() {
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            document.body.appendChild(renderer.domElement);
+        }
+
+        function createCube() {
+            // Geometría del cubo
+            const geometry = new THREE.BoxGeometry(1.5, 1.5, 1.5);
+            
+            // Cargar textura oceano.gif
+            const texturabase = new THREE.TextureLoader();
+            const textura = texturabase.load('oceano.gif');
+
+            // Configurar la textura
+            textura.wrapS = THREE.RepeatWrapping;
+            textura.wrapT = THREE.RepeatWrapping;
+            textura.repeat.set(1, 1);
+            
+            // Material solo con la textura (sin color)
+            const material = new THREE.MeshBasicMaterial({ 
+                map: textura
+            });
+
+            // Crear la malla del cubo
+            cube = new THREE.Mesh(geometry, material);
+            
+            // Añadir cubo a la escena
+            scene.add(cube);
+            
+            // Crear controles Orbit
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.04;
+            controls.enableZoom = true;
+            controls.minDistance = 2;
+            controls.maxDistance = 9;
+            controls.target.set(0, 0, 0);
+        }
+
+        function animate() {
+            animationId = requestAnimationFrame(animate);
+            
+            // Actualizar controles
+            if (controls) {
+                controls.update();
+            }
+            
+            // Rotación del cubo
+            if (cube) {
+                cube.rotation.x += 0.01;
+                cube.rotation.y += 0.01;
+            }
+            
+            // Renderizar
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            // Actualizar cámara
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            
+            // Actualizar renderizador
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        }
+
+        function setupEventListeners() {
+            // Redimensionamiento de ventana
+            window.addEventListener('resize', onWindowResize);
+            
+            // Limpiar animación al salir
+            window.addEventListener('beforeunload', () => {
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                }
+            });
+        }
+
+        // Inicializar cuando el DOM esté cargado
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
